@@ -53,7 +53,7 @@ mod character {
                 wis: 0,
                 cha: 0,
             };
-            let mut scores = vec![0; 6]
+            let mut scores = [0; 6]
                 .iter()
                 .map(|_| die.roll())
                 .collect::<Vec<_>>();
@@ -68,7 +68,7 @@ mod character {
     impl Index<usize> for Character {
         type Output = i32;
 
-        fn index<'a>(&'a self, i: usize) -> &'a Self::Output {
+        fn index(&self, i: usize) -> &Self::Output {
             match i {
                 0 => &self.st,
                 1 => &self.dex,
@@ -83,7 +83,7 @@ mod character {
 
     impl IndexMut<usize> for Character {
 
-        fn index_mut<'a>(&'a mut self, i: usize) -> &'a mut i32 {
+        fn index_mut(&mut self, i: usize) -> &mut i32 {
             match i {
                 0 => &mut self.st,
                 1 => &mut self.dex,

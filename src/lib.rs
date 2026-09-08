@@ -3,7 +3,6 @@ pub mod utils;
 pub mod roll {
     use rand::Rng;
 
-
     pub trait Roll {
         fn roll(&mut self) -> i32;
     

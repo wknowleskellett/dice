@@ -15,9 +15,10 @@ pub mod dice {
     }
     
     impl Die {
-        pub fn new(d: u16) -> Self {
+        pub fn new(d: i32) -> Self {
+            assert!(d > 0);
             Self {
-                d: d.into(),
+                d,
             }
         }
     }
@@ -46,8 +47,10 @@ pub struct BakedRng<T: RollRng, U: Rng> {
     rng: U,
 }
 
+// Cell (lazy cell, once cell)
+
 pub trait RngOven: RollRng + Sized {
-    fn bake<'a, T: Rng>(self: Self, rng: T) -> BakedRng<Self, T> {
+    fn bake<T: Rng>(self, rng: T) -> BakedRng<Self, T> {
         BakedRng::new(self, rng)
     }
 }
@@ -63,25 +66,25 @@ impl <T: RollRng, U: Rng> BakedRng<T, U> {
     }
 }
 
-impl <'a, T: RollRng, U: Rng> Roll for BakedRng<T, U> {
+impl <T: RollRng, U: Rng> Roll for BakedRng<T, U> {
     fn roll(&mut self) -> i32 {
         self.d.roll_rng(&mut self.rng)
     }
 }
 
-impl <'a, T: RollRng + CriticalSuccess, U: Rng> CriticalSuccess for BakedRng<T, U> {
+impl <T: RollRng + CriticalSuccess, U: Rng> CriticalSuccess for BakedRng<T, U> {
     fn is_critical_success(&self, n: i32) -> bool {
         self.d.is_critical_success(n)
     }
 }
 
-impl <'a, T: RollRng + CriticalFailure, U: Rng> CriticalFailure for BakedRng<T, U> {
+impl <T: RollRng + CriticalFailure, U: Rng> CriticalFailure for BakedRng<T, U> {
     fn is_critical_failure(&self, n: i32) -> bool {
         self.d.is_critical_failure(n)
     }
 }
 
-impl <'a, T: RollRng + Explosion, U: Rng> Explosion for BakedRng<T, U> {    
+impl <T: RollRng + Explosion, U: Rng> Explosion for BakedRng<T, U> {    
     fn explodes(&self, n: i32) -> bool {
         self.d.explodes(n)
     }
