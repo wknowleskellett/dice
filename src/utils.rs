@@ -1,94 +1,47 @@
 use std::cmp::Reverse;
 
-use rand::Rng;
-
-use crate::roll::{CriticalFailure, CriticalSuccess, Explosion, Roll, RollRng};
+use crate::roll::Roll;
 
 pub mod dice {
-    use rand::Rng;
+    use rand::{Rng, rngs::ThreadRng, thread_rng};
 
-    use crate::roll::{CriticalFailure, CriticalSuccess, RollRng};
+    use crate::roll::{Roll};
 
     #[derive(Debug)]
-    pub struct Die {
+    pub struct Die<R: Rng> {
         d: i32,
+        rng: R,
     }
     
-    impl Die {
-        pub fn new(d: i32) -> Self {
+    impl Die<ThreadRng> {
+        pub fn new_baked(d: i32) -> Self {
             assert!(d > 0);
             Self {
                 d,
+                rng: thread_rng(),
             }
         }
     }
     
-    impl RollRng for Die {
-        fn roll_rng<U: Rng>(&self, rng: &mut U) -> i32 {
-            rng.gen_range(1..=self.d)
+    impl <R: Rng> Die<R> {
+
+        pub fn new(d: i32, rng: R) -> Self {
+            assert!(d > 0);
+            Self {
+                d,
+                rng
+            }
         }
     }
     
-    impl CriticalFailure for Die {
-        fn is_critical_failure(&self, n: i32) -> bool {
-            n == 1
-        }
-    }
-    
-    impl CriticalSuccess for Die {
-        fn is_critical_success(&self, n: i32) -> bool {
-            n == self.d
+    impl <R: Rng> Roll for Die<R> {
+        fn roll(&mut self) -> i32 {
+            self.rng.gen_range(1..=self.d)
         }
     }
 }
 
-pub struct BakedRng<T: RollRng, U: Rng> {
-    d: T,
-    rng: U,
-}
 
-// Cell (lazy cell, once cell)
-
-pub trait RngOven: RollRng + Sized {
-    fn bake<T: Rng>(self, rng: T) -> BakedRng<Self, T> {
-        BakedRng::new(self, rng)
-    }
-}
-
-impl <T: RollRng> RngOven for T {}
-
-impl <T: RollRng, U: Rng> BakedRng<T, U> {
-    pub fn new(d: T, rng: U) -> Self {
-        Self {
-            d,
-            rng,
-        }
-    }
-}
-
-impl <T: RollRng, U: Rng> Roll for BakedRng<T, U> {
-    fn roll(&mut self) -> i32 {
-        self.d.roll_rng(&mut self.rng)
-    }
-}
-
-impl <T: RollRng + CriticalSuccess, U: Rng> CriticalSuccess for BakedRng<T, U> {
-    fn is_critical_success(&self, n: i32) -> bool {
-        self.d.is_critical_success(n)
-    }
-}
-
-impl <T: RollRng + CriticalFailure, U: Rng> CriticalFailure for BakedRng<T, U> {
-    fn is_critical_failure(&self, n: i32) -> bool {
-        self.d.is_critical_failure(n)
-    }
-}
-
-impl <T: RollRng + Explosion, U: Rng> Explosion for BakedRng<T, U> {    
-    fn explodes(&self, n: i32) -> bool {
-        self.d.explodes(n)
-    }
-}
 
 #[derive(Debug)]
 pub struct ModifiedDie<T: Roll> {
@@ -132,45 +85,6 @@ impl <T: Roll> Roll for MultipliedDie<T> {
     }
 }
 
-// #[derive(Debug)]
-pub struct AddedDice {
-    dice: Vec<Box<dyn Roll>>,
-}
-
-impl AddedDice {
-    pub fn new(dice: Vec<Box<dyn Roll>>) -> Self {
-        Self {
-            dice
-        }
-    }
-}
-
-impl Roll for AddedDice {
-    fn roll(&mut self) -> i32 {
-        self.dice.iter_mut().map(|die_box| (*die_box).roll()).sum()
-    }
-}
-
-#[derive(Debug)]
-pub struct RepeatDie<T: Roll> {
-    n: i32,
-    d: T,
-}
-
-impl<T: Roll> RepeatDie<T> {
-    pub fn new(n: i32, d: T) -> Self {
-        Self {
-            n,
-            d,
-        }
-    }
-}
-
-impl<T: Roll> Roll for RepeatDie<T> {
-    fn roll(&mut self) -> i32 {
-        self.d.repeat(self.n)
-    }
-}
 
 // #[derive(Debug)]
 pub struct HighestDice {
