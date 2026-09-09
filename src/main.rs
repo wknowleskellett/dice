@@ -16,11 +16,11 @@ fn main() {
 
     let disadvantage_d20 = Disadvantage::new(d(20), d(20));
 
-    let mut results = disadvantage_d20.get_stats().into_iter().collect::<Vec<(i32, i32)>>();
+    let mut results = disadvantage_d20.get_stats().into_iter().collect::<Vec<(i32, f32)>>();
     results.sort_by_key(|k| k.0);
-    let total= results.iter().map(|pair| pair.1).sum::<i32>() as f32;
+    let total= results.iter().map(|pair| pair.1).sum::<f32>();
     
     for (a, b) in results.iter() {
-        println!("{},{}", a, (b.clone() * 100) as f32 / total);
+        println!("{},{}", a, (b.clone() * 100.0) as f32 / total);
     }
 }

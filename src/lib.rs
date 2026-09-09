@@ -1,9 +1,11 @@
 pub mod roll {
     use std::collections::HashMap;
     pub trait Roll {
-        fn roll(&mut self) -> i32;
+        type Output;
 
-        fn get_stats(&self) -> HashMap<i32, i32>;
+        fn roll(&mut self) -> Self::Output;
+
+        fn get_stats(&self) -> HashMap<Self::Output, f32>;
     }
 }
 
