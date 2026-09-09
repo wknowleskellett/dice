@@ -58,7 +58,7 @@ pub mod dice {
         }
     }
 
-    impl<T: Roll<Output=i32>> Roll for ModifiedDie<T> {
+    impl<T: Roll<Output = i32>> Roll for ModifiedDie<T> {
         type Output = i32;
 
         fn roll(&mut self) -> Self::Output {
@@ -90,7 +90,7 @@ pub mod dice {
         }
     }
 
-    impl<T: Roll<Output=i32>> Roll for MultipliedDie<T> {
+    impl<T: Roll<Output = i32>> Roll for MultipliedDie<T> {
         type Output = i32;
 
         fn roll(&mut self) -> i32 {
@@ -116,11 +116,11 @@ pub mod dice {
 
     // #[derive(Debug)]
     pub struct SumDie {
-        dice: Vec<Box<dyn Roll<Output=i32>>>,
+        dice: Vec<Box<dyn Roll<Output = i32>>>,
     }
 
     impl SumDie {
-        pub fn new(dice: Vec<Box<dyn Roll<Output=i32>>>) -> Self {
+        pub fn new(dice: Vec<Box<dyn Roll<Output = i32>>>) -> Self {
             Self { dice }
         }
     }
@@ -152,27 +152,24 @@ pub mod dice {
         }
     }
 
-    pub struct Advantage<T: Roll<Output=i32>, U: Roll<Output=i32>> {
+    pub struct Advantage<T: Roll<Output = i32>, U: Roll<Output = i32>> {
         d_1: T,
         d_2: U,
     }
 
-    impl <T: Roll<Output=i32>, U: Roll<Output=i32>> Advantage<T, U> {
-        pub fn new(d_1: T, d_2: U) -> Advantage<T, U>{
-            Advantage {
-                d_1,
-                d_2,
-            }
+    impl<T: Roll<Output = i32>, U: Roll<Output = i32>> Advantage<T, U> {
+        pub fn new(d_1: T, d_2: U) -> Advantage<T, U> {
+            Advantage { d_1, d_2 }
         }
     }
 
-    impl <T: Roll<Output=i32>, U: Roll<Output=i32>> Roll for Advantage<T, U> {
+    impl<T: Roll<Output = i32>, U: Roll<Output = i32>> Roll for Advantage<T, U> {
         type Output = i32;
 
         fn roll(&mut self) -> i32 {
             std::cmp::max(self.d_1.roll(), self.d_2.roll())
         }
-    
+
         fn get_stats(&self) -> HashMap<Self::Output, f32> {
             let mut stats = HashMap::new();
             let stats_1 = self.d_1.get_stats();
@@ -181,7 +178,7 @@ pub mod dice {
                 for (side_2, count_2) in stats_2.iter() {
                     let result = std::cmp::max(side_1, side_2).clone();
                     let count = stats.entry(result).or_insert(0.0);
-                    *count += count_1*count_2;
+                    *count += count_1 * count_2;
                 }
             }
 
@@ -189,27 +186,24 @@ pub mod dice {
         }
     }
 
-    pub struct Disadvantage<T: Roll<Output=i32>, U: Roll<Output=i32>> {
+    pub struct Disadvantage<T: Roll<Output = i32>, U: Roll<Output = i32>> {
         d_1: T,
         d_2: U,
     }
 
-    impl <T: Roll<Output=i32>, U: Roll<Output=i32>> Disadvantage<T, U> {
-        pub fn new(d_1: T, d_2: U) -> Disadvantage<T, U>{
-            Disadvantage {
-                d_1,
-                d_2,
-            }
+    impl<T: Roll<Output = i32>, U: Roll<Output = i32>> Disadvantage<T, U> {
+        pub fn new(d_1: T, d_2: U) -> Disadvantage<T, U> {
+            Disadvantage { d_1, d_2 }
         }
     }
 
-    impl <T: Roll<Output=i32>, U: Roll<Output=i32>> Roll for Disadvantage<T, U> {
+    impl<T: Roll<Output = i32>, U: Roll<Output = i32>> Roll for Disadvantage<T, U> {
         type Output = i32;
 
         fn roll(&mut self) -> i32 {
             std::cmp::min(self.d_1.roll(), self.d_2.roll())
         }
-    
+
         fn get_stats(&self) -> HashMap<Self::Output, f32> {
             let mut stats = HashMap::new();
             let stats_1 = self.d_1.get_stats();
@@ -218,7 +212,7 @@ pub mod dice {
                 for (side_2, count_2) in stats_2.iter() {
                     let result = std::cmp::min(side_1, side_2).clone();
                     let count = stats.entry(result).or_insert(0.0);
-                    *count += count_1*count_2;
+                    *count += count_1 * count_2;
                 }
             }
 
