@@ -1,9 +1,9 @@
 pub mod dice {
-    use std::collections::HashMap;
+    use std::{collections::HashMap, hash::Hash};
 
     use rand::{rngs::ThreadRng, thread_rng, Rng};
 
-    use crate::roll::Roll;
+    use crate::roll::{CompoundRoll, Roll, RollTuple};
 
     impl Roll for i32 {
         type Output = i32;
@@ -231,6 +231,80 @@ pub mod dice {
             stats
         }
     }
+
+    // pub struct FnTest<M: Fn(i32) -> T, T> {
+    //     my_map: M,
+    // }
+
+    // impl <M: Fn(i32) -> T, T> FnTest<M, T> {
+    //     fn do_it(&self, n: i32) -> T {
+    //         self.my_map(n)
+    //     }
+    // }
+
+    // pub struct MapDie<M: Fn(i32) -> T, T, R: Roll> {
+    //     die_map: M,
+    //     die: R,
+    // }
+
+    // impl<M: Fn(i32) -> T, T, R: Roll> MapDie<M, T, R> {
+    //     pub fn new(die_map: M, d: R) -> Self {
+    //         Self { die_map, die: d }
+    //     }
+    // }
+
+    // impl<M, T, R> CompoundRoll for MapDie<M, T, R>
+    // where
+    //     M: Fn(i32) -> T,
+    //     R: Roll,
+    //     R::Output: Eq + Hash + Clone,
+    // {
+    //     type Output = T;
+
+    //     type DiceSet = (R, ());
+
+    //     // fn get_dice(&self) -> &Self::DiceSet {
+    //     //     (self.die, ())
+    //     // }
+
+    //     // fn get_dice_mut(&mut self) -> &mut Self::DiceSet {
+    //     //     &mut self.die
+    //     // }
+
+    //     fn calculate(&self, results: <Self::DiceSet as RollTuple>::Outputs) -> Self::Output {
+    //         self.die_map(0)
+    //     }
+
+    //     fn get_stats_all(&self) -> HashMap<<Self::DiceSet as RollTuple>::Outputs, f32> {
+    //         todo!()
+    //     }
+
+    //     fn roll_all(&mut self) -> <Self::DiceSet as RollTuple>::Outputs {
+    //         todo!()
+    //     }
+    // }
+
+    // pub struct ConcatenateDie<T: RollTuple> {
+    //     dice: T,
+    // }
+
+    // impl<T: RollTuple> CompoundRoll for ConcatenateDie<T> {
+    //     type Output = String;
+    
+    //     type DiceSet = ();
+    
+    //     fn get_stats_all(&self) -> HashMap<<Self::DiceSet as RollTuple>::Outputs, f32> {
+    //         todo!()
+    //     }
+    
+    //     fn roll_all(&mut self) -> <Self::DiceSet as RollTuple>::Outputs {
+    //         todo!()
+    //     }
+    
+    //     fn calculate(&self, results: <Self::DiceSet as RollTuple>::Outputs) -> Self::Output {
+    //         todo!()
+    //     }
+    // }
 }
 
 // // #[derive(Debug)]
