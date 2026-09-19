@@ -5,6 +5,18 @@ pub mod dice {
 
     use crate::roll::Roll;
 
+    impl Roll for i32 {
+        type Output = i32;
+
+        fn roll(&mut self) -> Self::Output {
+            *self
+        }
+
+        fn get_stats(&self) -> HashMap<Self::Output, f32> {
+            HashMap::from([(*self, 1.0)])
+        }
+    }
+
     #[derive(Debug)]
     pub struct Die<R: Rng> {
         d: i32,
