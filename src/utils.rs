@@ -670,21 +670,21 @@ pub mod dice {
     }
 
     /// A map imposed on a die result
-    /// 
+    ///
     /// This is a convenience implementation. If you have a function
     /// to run on the results of one die to produce a new die, this is the place to use it.
-    /// 
+    ///
     /// This die is used by [AddDie] and [MulDie]. It is syntax sugar for implementing a [CompoundRoll]
     /// type composed of a single die.
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// ```
     /// use dice::{prelude::d, roll::Roll, utils::dice::MapDie};
-    /// 
+    ///
     /// let sqrt_int = |n| ((n as f32).sqrt()*100.0) as i32;
     /// let mut sqrt_d100 = MapDie::new(sqrt_int, d(100));
-    /// 
+    ///
     /// for _ in 0..100 {
     ///     println!("{:.2}", (sqrt_d100.roll() as f32)/100.0);
     /// }

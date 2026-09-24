@@ -88,10 +88,10 @@ pub mod roll {
         #[macro_export]
         macro_rules! roll_tuple {
             // Base case: nothing left → unit
-            () => { () };
+            ($(,)?) => { () };
 
             // Recursive case: first element + rest
-            ($head:expr $(, $tail:expr)*) => {
+            ($head:expr $(, $tail:expr)* $(,)?) => {
                 ($head, roll_tuple!($($tail),*))
             };
         }
@@ -105,10 +105,10 @@ pub mod roll {
         #[macro_export]
         macro_rules! roll_tuple_type {
             // Base case: nothing left → unit
-            () => { () };
+            ($(,)?) => { () };
 
             // Recursive case: first element + rest
-            ($head:ty $(, $tail:ty)*) => {
+            ($head:ty $(, $tail:ty)* $(,)?) => {
                 ($head, roll_tuple_type!($($tail),*))
             };
         }
@@ -122,10 +122,10 @@ pub mod roll {
         #[macro_export]
         macro_rules! roll_tuple_pattern {
             // Base case: nothing left → unit
-            () => { () };
+            ($(,)?) => { () };
 
             // Recursive case: first element + rest
-            ($head:pat $(, $tail:pat)*) => {
+            ($head:pat $(, $tail:pat)* $(,)?) => {
                 ($head, roll_tuple_pattern!($($tail),*))
             };
         }
@@ -226,7 +226,7 @@ pub mod roll {
         /// struct BathroomRoller {
         ///     d: roll_tuple_type!(
         ///         MapDie<i32, Die<ThreadRng>, Box<dyn Fn(i32) -> i32>>,
-        ///         Coin<ThreadRng>
+        ///         Coin<ThreadRng>,
         ///     ),
         /// }
         ///
@@ -243,7 +243,7 @@ pub mod roll {
         ///
         ///     type DiceSet = roll_tuple_type!(
         ///         MapDie<i32, Die<ThreadRng>, Box<dyn Fn(i32) -> i32>>,
-        ///         Coin<ThreadRng>
+        ///         Coin<ThreadRng>,
         ///     );
         ///
         ///     fn get_dice(&self) -> &Self::DiceSet {
