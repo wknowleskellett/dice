@@ -83,7 +83,7 @@ mod whatever {
                     1 => Entree::CaesarSalad,
                     2 => Entree::Pierogies,
                     _ => panic!("Two sided die rolled something other than 1 or 2"),
-                })  as Box<dyn Fn(i32) -> Entree>,
+                }) as Box<dyn Fn(i32) -> Entree>,
                 d(2),
             );
             let soup_die = MapDie::new(
@@ -95,7 +95,9 @@ mod whatever {
                 d(2),
             );
             // [roll_tuple] is used here to fold these two dice into a [RollTuple] type
-            Self { d: roll_tuple!(entree_die, soup_die) }
+            Self {
+                d: roll_tuple!(entree_die, soup_die),
+            }
         }
     }
 

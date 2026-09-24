@@ -1,3 +1,7 @@
+#[cfg(doc)]
+use crate::roll::Roll;
+
+/// This module provides common implementations of the [Roll] trait.
 pub mod dice {
     use std::{
         collections::HashMap,
@@ -11,6 +15,28 @@ pub mod dice {
 
     use crate::{prelude::*, roll::compound::*};
 
+    /// A convenience [Roll] object with a single possible result
+    ///
+    /// A stand-in type for a case where a [Roll] type is required but a constant result is sufficient.
+    ///
+    /// # Example
+    /// ```
+    /// use dice::{prelude::d, roll::Roll, utils::dice::ConstRoll};
+    ///
+    /// enum NumRoller {
+    ///     Num(i32),
+    ///     Sides(i32),
+    /// }
+    ///
+    /// impl NumRoller {
+    ///     fn get(&self) -> Box<dyn Roll<Output=i32>> {
+    ///         match self {
+    ///             NumRoller::Num(n) => Box::new(ConstRoll::new(*n)),
+    ///             NumRoller::Sides(n) => Box::new(d(*n)),
+    ///         }
+    ///     }
+    /// }
+    /// ```
     #[derive(Debug)]
     pub struct ConstRoll<T>(pub T);
 
@@ -38,6 +64,61 @@ pub mod dice {
         }
     }
 
+    /// A fair coin
+    ///
+    /// # Examples
+    /// ```
+    /// use dice::{roll::Roll, utils::dice::Coin};
+    /// use rand::rng;
+    ///
+    /// let mut go_to_store = Coin::new(rng());
+    /// let mut singing_to_myself = Coin::new_baked();
+    ///
+    /// println!("I {} going to the store", if go_to_store.roll() { "am" } else {"am not"} );
+    /// println!("I {} singing to myself", if singing_to_myself.roll() { "am" } else {"am not"} );
+    /// ```
+    pub struct Coin<R: RngExt> {
+        rng: R,
+    }
+
+    impl<R: RngExt> Coin<R> {
+        pub fn new(rng: R) -> Self {
+            Self { rng }
+        }
+    }
+
+    impl Coin<ThreadRng> {
+        pub fn new_baked() -> Self {
+            Self { rng: rng() }
+        }
+    }
+
+    impl<R: RngExt> Roll for Coin<R> {
+        type Output = bool;
+
+        fn roll(&mut self) -> Self::Output {
+            self.rng.random_bool(0.5)
+        }
+
+        fn get_stats(&self) -> HashMap<Self::Output, f32> {
+            HashMap::from([(true, 0.5), (false, 0.5)])
+        }
+    }
+
+    /// An unweighted die with integer sides
+    ///
+    /// If you don't need to use your own [Rng](rand::Rng) implementation,
+    /// consider using [dice::prelude::d](crate::prelude::d).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rand::rng;
+    /// use dice::{roll::Roll, utils::dice::Die};
+    ///
+    /// let mut d10 = Die::new(10, rng()).unwrap(); // Only errors when the number is 0 or less
+    /// println!("I got a {}", d10.roll());
+    /// ```
     #[derive(Debug)]
     pub struct Die<R: RngExt> {
         d: i32,
@@ -78,13 +159,25 @@ pub mod dice {
         }
     }
 
-    #[macro_export]
-    macro_rules! box_dice {
-        ($t:ty; $($x:expr),* $(,)?) => {
-            vec![$( Box::new($x) as Box<dyn Roll<Output = $t>> ),*]
-        };
-    }
-
+    /// A rollable [Vec] of [Roll] objects.
+    ///
+    /// It is recommended to utilize the [box_dice] macro for this use case.
+    ///
+    /// # Examples
+    /// ```
+    /// use dice::{
+    ///     prelude::d,
+    ///     roll::{Roll, box_dice},
+    ///     utils::dice::{Dice, MulDie},
+    /// };
+    /// let dice_list =
+    ///     box_dice![i32; d(4), d(6), d(8), d(10), MulDie::new(d(10), 10), d(12), d(20)];
+    /// let mut my_dice = Dice::new(dice_list);
+    ///
+    /// for (i, die_result) in my_dice.roll().iter().enumerate() {
+    ///     println!("Die {} rolled {}", i + 1, die_result);
+    /// }
+    /// ```
     pub struct Dice<T> {
         dice: Vec<Box<dyn Roll<Output = T>>>,
     }
@@ -126,7 +219,28 @@ pub mod dice {
         }
     }
 
-    // #[derive(Debug)]
+    /// Add a constant to a die result
+    ///
+    /// The result of the die roll is added to the constant. This works for any types
+    /// `U`, `V` where `U::Output` can be added to `V`. `T` is the output type.
+    ///
+    /// # Examples
+    /// ```
+    /// use dice::{prelude::d, roll::Roll, utils::dice::AddDie};
+    ///
+    /// let mut d10 = d(10);
+    /// let mut d10_plus_five = AddDie::new(d(10), 5);
+    ///
+    /// println!("d10 results:");
+    /// for _ in 0..10 {
+    ///     println!("{}", d10.roll());
+    /// }
+    ///
+    /// println!("d10+5 results:");
+    /// for _ in 0..10 {
+    ///     println!("{}", d10_plus_five.roll());
+    /// }
+    /// ```
     pub struct AddDie<T, U, V>
     where
         U: Roll<Output: Add<V, Output = T>>,
@@ -137,7 +251,7 @@ pub mod dice {
 
     impl<T, U, V> AddDie<T, U, V>
     where
-        U: Roll<Output: Add<V, Output = T>>,
+        U: Roll<Output: Add<V, Output = T> + Clone + Eq + Hash>,
         V: Clone + 'static,
     {
         pub fn new(d: U, m: V) -> Self {
@@ -164,6 +278,28 @@ pub mod dice {
         }
     }
 
+    /// Multiply a die result by a constant
+    ///
+    /// The result of the die roll is multiplied by the constant. This works for any types
+    /// `U`, `V` where `U::Output` can be multiplied by `V`. `T` is the output type.
+    ///
+    /// # Examples
+    /// ```
+    /// use dice::{prelude::d, roll::Roll, utils::dice::MulDie};
+    ///
+    /// let mut d10 = d(10);
+    /// let mut d10_times_five = MulDie::new(d(10), 5);
+    ///
+    /// println!("d10 results:");
+    /// for _ in 0..10 {
+    ///     println!("{}", d10.roll());
+    /// }
+    ///
+    /// println!("d10*5 results:");
+    /// for _ in 0..10 {
+    ///     println!("{}", d10_times_five.roll());
+    /// }
+    /// ```
     pub struct MulDie<T, U, V>
     where
         U: Roll<Output: Mul<V, Output = T>>,
@@ -174,7 +310,7 @@ pub mod dice {
 
     impl<T, U, V> MulDie<T, U, V>
     where
-        U: Roll<Output: Mul<V, Output = T>>,
+        U: Roll<Output: Mul<V, Output = T> + Clone + Eq + Hash>,
         V: Clone + 'static,
     {
         pub fn new(d: U, m: V) -> Self {
@@ -201,6 +337,10 @@ pub mod dice {
         }
     }
 
+    /// Used to create a SumDie
+    ///
+    /// This trait is implemented by default on all numeric types.
+    ///
     /// `MonoidSum` requires the following property:
     ///
     /// `sum(a, b, c, ...) == sum(sum(sum(sum(), a), b), c)...`
@@ -211,6 +351,10 @@ pub mod dice {
     /// in exactly the case stated above.
     pub trait MonoidSum: Sum {}
 
+    /// Used to create a ProductDie
+    ///
+    /// This trait is implemented by default on all numeric types.
+    ///
     /// `MonoidProduct` requires the following property:
     ///
     /// `product(a, b, c, ...) == product(product(product(product(), a), b), c)...`
@@ -233,6 +377,33 @@ pub mod dice {
 
     impl_monoid_sum_product!(i8 i16 i32 i64 i128 isize u8 u16 u32 u64 u128 usize f32 f64);
 
+    /// Sum the results of the input dice
+    ///
+    /// Consider initializing this with the [box_dice] macro.
+    ///
+    /// To use this on a custom type, implement [Sum] and [MonoidSum]. The [Sum] implementation
+    /// must meet the additional requirements of [MonoidSum].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use dice::{
+    ///     prelude::d,
+    ///     roll::{Roll, box_dice},
+    ///     utils::dice::{ConstRoll, SumDie},
+    /// };
+    ///
+    /// let mut sum = SumDie::new(box_dice!(
+    ///     i32;
+    ///     d(6),
+    ///     d(6),
+    ///     d(6),
+    ///     ConstRoll::new(10),
+    /// ));
+    /// for _ in 0..10 {
+    ///     println!("I got {}", sum.roll());
+    /// }
+    /// ```
     pub struct SumDie<T>
     where
         T: MonoidSum + Clone + Eq + Hash,
@@ -294,6 +465,33 @@ pub mod dice {
         }
     }
 
+    /// Get the product of the results of the input dice
+    ///
+    /// Consider initializing this with the [box_dice] macro.
+    ///
+    /// To use this on a custom type, implement [Product] and [MonoidProduct]. The [Product] implementation
+    /// must meet the additional requirements of [MonoidProduct].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use dice::{
+    ///     prelude::d,
+    ///     roll::{Roll, box_dice},
+    ///     utils::dice::{ConstRoll, ProductDie},
+    /// };
+    ///
+    /// let mut product = ProductDie::new(box_dice!(
+    ///     i32;
+    ///     d(6),
+    ///     d(6),
+    ///     d(6),
+    ///     ConstRoll::new(10),
+    /// ));
+    /// for _ in 0..10 {
+    ///     println!("I got {}", product.roll());
+    /// }
+    /// ```
     pub struct ProductDie<T>
     where
         T: MonoidProduct + Clone + Eq + Hash,
@@ -355,6 +553,18 @@ pub mod dice {
         }
     }
 
+    /// The greater of two orderable dice
+    ///
+    /// # Examples
+    /// ```
+    /// use dice::{prelude::d, roll::Roll, utils::dice::Advantage};
+    ///
+    /// let mut adv = Advantage::new(d(20), d(20));
+    ///
+    /// for _ in 0..10 {
+    ///     println!("{}", adv.roll());
+    /// }
+    /// ```
     pub struct Advantage<T, T1, T2>
     where
         T: Ord,
@@ -401,6 +611,18 @@ pub mod dice {
         }
     }
 
+    /// The lesser of two orderable dice
+    ///
+    /// # Examples
+    /// ```
+    /// use dice::{prelude::d, roll::Roll, utils::dice::Advantage};
+    ///
+    /// let mut adv = Advantage::new(d(20), d(20));
+    ///
+    /// for _ in 0..10 {
+    ///     println!("{}", adv.roll());
+    /// }
+    /// ```
     pub struct Disadvantage<T, T1, T2>
     where
         T: Ord,
@@ -447,13 +669,36 @@ pub mod dice {
         }
     }
 
+    /// A map imposed on a die result
+    /// 
+    /// This is a convenience implementation. If you have a function
+    /// to run on the results of one die to produce a new die, this is the place to use it.
+    /// 
+    /// This die is used by [AddDie] and [MulDie]. It is syntax sugar for implementing a [CompoundRoll]
+    /// type composed of a single die.
+    /// 
+    /// # Example
+    /// 
+    /// ```
+    /// use dice::{prelude::d, roll::Roll, utils::dice::MapDie};
+    /// 
+    /// let sqrt_int = |n| ((n as f32).sqrt()*100.0) as i32;
+    /// let mut sqrt_d100 = MapDie::new(sqrt_int, d(100));
+    /// 
+    /// for _ in 0..100 {
+    ///     println!("{:.2}", (sqrt_d100.roll() as f32)/100.0);
+    /// }
+    /// ```
     pub struct MapDie<T, R: Roll, M: Fn(R::Output) -> T> {
         dice: roll_tuple_type!(R),
         map: M,
         _marker: PhantomData<fn(R::Output) -> T>,
     }
 
-    impl<T, R: Roll, M: Fn(R::Output) -> T> MapDie<T, R, M> {
+    impl<T, R: Roll, M: Fn(R::Output) -> T> MapDie<T, R, M>
+    where
+        R::Output: Eq + Hash + Clone,
+    {
         pub fn new(map: M, die: R) -> Self {
             Self {
                 map,
@@ -483,49 +728,4 @@ pub mod dice {
             &mut self.dice
         }
     }
-
-    // pub struct HighestDice {
-    //     dice: Vec<Box<dyn Roll>>,
-    //     count: usize,
-    // }
-
-    // impl HighestDice {
-    //     pub fn new(dice: Vec<Box<dyn Roll>>, count: usize) -> Result<Self, usize> {
-    //         if count > dice.len() {
-    //             Err(dice.len())
-    //         } else {
-    //             Ok(Self {dice, count})
-    //         }
-    //     }
-    // }
-
-    // impl <T> CompoundRoll for HighestDice {
-    //     fn c(&mut self) -> i32 {
-    //         results.sort_by_key(|w| Reverse(*w));
-    //         results.truncate(self.count);
-    //         results
-    //     }
-
-    //     type Output=Vec<T>;
-
-    //     type DiceSet;
-
-    //     fn get_dice(&self) -> &Self::DiceSet {
-    //         todo!()
-    //     }
-
-    //     fn get_dice_mut(&mut self) -> &mut Self::DiceSet {
-    //         todo!()
-    //     }
-
-    //     fn calculate(&self, results: <Self::DiceSet as RollTuple>::Outputs) -> Self::Output {
-    //         todo!()
-    //     }
-    // }
 }
-
-// // #[derive(Debug)]
-// pub struct HighestDice {
-//     dice: Vec<Box<dyn Roll>>,
-//     count: usize,
-// }
